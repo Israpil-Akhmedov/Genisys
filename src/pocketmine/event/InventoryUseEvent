@@ -1,0 +1,69 @@
+<?php
+
+
+/**
+-----------------------------------------------------------------------------
+Данный эвент был создан для тех кто не может юзать InventoryTranslationEvent!
+-----------------------------------------------------------------------------
+This event was created for those who can not use InventoryTranslationEvent!
+-----------------------------------------------------------------------------
+**/
+
+
+namespace pocketmine\event\inventory;
+
+use pocketmine\event\Cancellable;
+use pocketmine\inventory\Inventory;
+use pocketmine\item\Item;
+use pocketmine\Player;
+
+class InventoryClickEvent extends InventoryEvent implements Cancellable{
+	
+	public static $handlerList = null;
+  
+	/** @var Player */
+	private $player;
+  
+	private $slot;
+  
+	/** @var Item */
+	private $item;
+  
+	/**
+	 * @param Inventory $inventory
+	 * @param Player    $player
+	 * @param int       $slot
+	 * @param Item      $item
+	 */
+   
+	public function __construct(Inventory $inventory, Player $player, $slot, Item $item){
+		$this->player = $player;
+		$this->slot = $slot;
+		$this->item = $item;
+		parent::__construct($inventory);
+	}
+  
+  
+	/**
+	 * @return Player
+	 */
+	public function getPlayer(){
+		return $this->player;
+	}
+  
+  
+	/**
+	 * @return int
+	 */
+	public function getSlot(){
+		return $this->slot;
+	}
+  
+  
+	/**
+	 * @return Item
+	 */
+	public function getItem(){
+		return $this->item;
+	}
+}
