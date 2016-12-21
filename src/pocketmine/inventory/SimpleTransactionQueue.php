@@ -22,6 +22,7 @@
 namespace pocketmine\inventory;
 
 use pocketmine\event\inventory\InventoryTransactionEvent;
+use pocketmine\event\inventory\InventoryuseUseEvent;
 use pocketmine\item\Item;
 use pocketmine\Player;
 
@@ -82,51 +83,58 @@ class SimpleTransactionQueue implements TransactionQueue{
 		$this->transactionCount += 1;
 	}
 
-	public function execute(){
-		/** @var Transaction[] */
-		$failed = [];
+public function execute(){
+/** @var Transaction[] */
+$failed = [];
 
-		while(!$this->transactionsToRetry->isEmpty()){
-			//Some failed transactions are waiting from the previous execution to be retried
-			$this->transactionQueue->enqueue($this->transactionsToRetry->dequeue());
-		}
+while(!$this->transactionsToRetry->isEmpty()){
+//Some failed transactions are waiting from the previous execution to be retried
+$this->transactionQueue->enqueue($this->transactionsToRetry->dequeue());
+}
 
-		if(!$this->transactionQueue->isEmpty()){
-			$this->player->getServer()->getPluginManager()->callEvent($ev = new InventoryTransactionEvent($this));
-		}else{
-			return;
-		}
+if(!$this->transactionQueue->isEmpty()){
+$this->player->getServer()->getPluginManager()->callEvent($ev = new InventoryTransactionEvent($this));
+}else{
+return;
+}
 
-		while(!$this->transactionQueue->isEmpty()){
-			$transaction = $this->transactionQueue->dequeue();
+while(!$this->transactionQueue->isEmpty()){
+$transaction = $this->transactionQueue->dequeue();
 
-			if($ev->isCancelled()){
-				$this->transactionCount -= 1;
-				$transaction->sendSlotUpdate($this->player); //Send update back to client for cancelled transaction
-				unset($this->inventories[spl_object_hash($transaction)]);
-				continue;
-			}elseif(!$transaction->execute($this->player)){
-				$transaction->addFailure();
-				if($transaction->getFailures() >= self::DEFAULT_ALLOWED_RETRIES){
-					/* Transaction failed completely after several retries, hold onto it to send a slot update */
-					$this->transactionCount -= 1;
-					$failed[] = $transaction;
-				}else{
-					/* Add the transaction to the back of the queue to be retried on the next tick */
-					$this->transactionsToRetry->enqueue($transaction);
-				}
-				continue;
-			}
+if($transaction->getInventory() instanceof ContainerInventory || $transaction->getInventory() instanceof PlayerInventory){
+$this->player->getServer()->getPluginManager()->callEvent($event = new InventoryUseEvent($transaction->getInventory(), $this->player, $transaction->getSlot(), $transaction->getInventory()->getItem($transaction->getSlot())));
+if($event->isCancelled()){
+$ev->setCancelled(true);
+}
+}
 
-			$this->transactionCount -= 1;
-			$transaction->setSuccess();
-			$transaction->sendSlotUpdate($this->player);
-			unset($this->inventories[spl_object_hash($transaction)]);
-		}
+if($ev->isCancelled()){
+$this->transactionCount -= 1;
+$transaction->sendSlotUpdate($this->player); //Send update back to client for cancelled transaction
+unset($this->inventories[spl_object_hash($transaction)]);
+continue;
+}elseif(!$transaction->execute($this->player)){
+$transaction->addFailure();
+if($transaction->getFailures() >= self::DEFAULT_ALLOWED_RETRIES){
+/* Transaction failed completely after several retries, hold onto it to send a slot update */
+$this->transactionCount -= 1;
+$failed[] = $transaction;
+}else{
+/* Add the transaction to the back of the queue to be retried on the next tick */
+$this->transactionsToRetry->enqueue($transaction);
+}
+continue;
+}
 
-		foreach($failed as $f){
-			$f->sendSlotUpdate($this->player);
-			unset($this->inventories[spl_object_hash($f)]);
-		}
-	}
+$this->transactionCount -= 1;
+$transaction->setSuccess();
+$transaction->sendSlotUpdate($this->player);
+unset($this->inventories[spl_object_hash($transaction)]);
+}
+
+foreach($failed as $f){
+$f->sendSlotUpdate($this->player);
+unset($this->inventories[spl_object_hash($f)]);
+}
+}
 }
