@@ -36,6 +36,8 @@ class Arrow extends Projectile{
 	public $width = 0.5;
 	public $length = 0.5;
 	public $height = 0.5;
+	
+	public $shootingEntity;
 
 	protected $gravity = 0.05;
 	protected $drag = 0.01;
@@ -52,10 +54,15 @@ class Arrow extends Projectile{
 		}
 		parent::__construct($chunk, $nbt, $shootingEntity);
 		$this->potionId = $this->namedtag["Potion"];
+		$this->shootingEntity = $shootingEntity;
 	}
 
 	public function getPotionId() : int{
 		return $this->potionId;
+	}
+	
+	public function getShootingEntity(){
+		return $this->shootingEntity;
 	}
 
 	public function onUpdate($currentTick){
